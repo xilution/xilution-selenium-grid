@@ -210,6 +210,9 @@ Resources:
         - !Ref PublicSubnetOne
         - !Ref PublicSubnetTwo
       SecurityGroups: [!Ref 'PublicLoadBalancerSG']
+  # This is an optional resource. If you don't want to use a custom domain, just
+  # remove the RecordSet resource an use the URL of the public load balancer which can
+  # be found in CloudFormation.
   RecordSet:
     Type: "AWS::Route53::RecordSet"
     DependsOn: PublicLoadBalancer

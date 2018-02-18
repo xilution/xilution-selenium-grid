@@ -23,7 +23,7 @@
 1. Use [AWS Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html) to create a Hosted Zone with a custom domain name.
 1. Use [AWS Key Management System](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html) to create a dev ops key for encrypting secrets.
 1. Add `export AWS_DEV_OPS_KEY_TOKEN=your-aws-dev-ops-kms-key-token` to your `.bash_profile`. Run `source ~/.bash_profile` to add the new environment variable to your current terminal session. This only needs to be done once.
-1. Create a file named `secrets.decrypted.json` in `./aws/cloud-formation/` with the following contents.
+1. Create a file named `secrets.decrypted.json` in `./aws/cloud-formation/` with the following contents. Replace `your-domain.com.` with your custom domain name.
 	``` json
 	[
 	  {
