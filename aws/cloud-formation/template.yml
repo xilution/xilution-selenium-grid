@@ -1,9 +1,4 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: This stack deploys a Fargate cluster that is in a VPC with both
-             public and private subnets. Containers can be deployed into either
-             the public subnets or the private subnets, and there is one load
-             balancer which can be used to send traffic to the containers in the
-             private subnet.
 
 Parameters:
   ContainerCpu:
