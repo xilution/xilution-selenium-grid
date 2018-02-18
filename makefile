@@ -7,28 +7,28 @@ deprovision-service:
 provision-network: secrets-devops-decrypt
 	aws cloudformation create-stack --stack-name selenium-grid-network \
 		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/fargate-networking-stacks/public-vpc.yml \
+		--template-body file://./aws/cloud-formation/fargate-networking-stacks/public-private-vpc.yml \
 		--parameters file://./aws/cloud-formation/secrets.decrypted.json
 	make secrets-devops-clean-up
 
 provision-service: secrets-devops-decrypt
 	aws cloudformation create-stack --stack-name selenium-grid-service \
 		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/service-stacks/public-subnet-public-loadbalancer.yml \
+		--template-body file://./aws/cloud-formation/service-stacks/private-subnet-public-loadbalancer.yml \
 		--parameters file://./aws/cloud-formation/secrets.decrypted.json
 	make secrets-devops-clean-up
 
 reprovision-network: secrets-devops-decrypt
 	aws cloudformation update-stack --stack-name selenium-grid-network \
 		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/fargate-networking-stacks/public-vpc.yml \
+		--template-body file://./aws/cloud-formation/fargate-networking-stacks/public-private-vpc.yml \
 		--parameters file://./aws/cloud-formation/secrets.decrypted.json
 	make secrets-devops-clean-up
 
 reprovision-service: secrets-devops-decrypt
 	aws cloudformation update-stack --stack-name selenium-grid-service \
 		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/service-stacks/public-subnet-public-loadbalancer.yml \
+		--template-body file://./aws/cloud-formation/service-stacks/private-subnet-public-loadbalancer.yml \
 		--parameters file://./aws/cloud-formation/secrets.decrypted.json
 	make secrets-devops-clean-up
 

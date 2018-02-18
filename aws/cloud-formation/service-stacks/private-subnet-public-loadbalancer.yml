@@ -16,7 +16,7 @@ Parameters:
     Description: How much memory in megabytes to give the container
   Path:
     Type: String
-    Default: "*"
+    Default: '*'
     Description: A path on the public load balancer that this service
                  should be connected to. Use * to send all load balancer
                  traffic to this service.
@@ -28,7 +28,7 @@ Parameters:
                  assigned to different paths on the load balancer.
   Role:
     Type: String
-    Default: ""
+    Default: ''
     Description: (Optional) An IAM role to give the service's containers if the code within needs to
                  access other AWS resources like S3 buckets, DynamoDB tables, etc
 
@@ -36,6 +36,12 @@ Conditions:
   HasCustomRole: !Not [ !Equals [!Ref 'Role', ''] ]
 
 Resources:
+
+  LogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: selenium-grid
+      RetentionInDays: 30
 
   TaskDefinitionHub:
     Type: AWS::ECS::TaskDefinition
@@ -53,8 +59,78 @@ Resources:
           Cpu: !Ref 'ContainerCpu'
           Memory: !Ref 'ContainerMemory'
           Image: 'selenium/hub:3.9.1-actinium'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'selenium'
           PortMappings:
             - ContainerPort: 4444
+
+  TaskDefinitionNodeChrome:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: !Ref 'ContainerCpu'
+      Memory: !Ref 'ContainerMemory'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn:
+        Fn::ImportValue:
+          !Join [':', [!Ref 'StackName', 'ECSTaskExecutionRole']]
+      ContainerDefinitions:
+        - Name: 'node-chrome'
+          Cpu: !Ref 'ContainerCpu'
+          Memory: !Ref 'ContainerMemory'
+          Image: 'selenium/node-chrome:3.9.1-actinium'
+          Environment:
+            - Name: 'HUB_PORT_4444_TCP_ADDR'
+              Value:
+                Fn::ImportValue:
+                  !Join [':', [!Ref 'StackName', 'ExternalHost']]
+            - Name: 'HUB_PORT_4444_TCP_PORT'
+              Value: '4444'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'selenium'
+          PortMappings:
+            - ContainerPort: 5555
+
+  TaskDefinitionNodeFirefox:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: !Ref 'ContainerCpu'
+      Memory: !Ref 'ContainerMemory'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn:
+        Fn::ImportValue:
+          !Join [':', [!Ref 'StackName', 'ECSTaskExecutionRole']]
+      ContainerDefinitions:
+        - Name: 'node-firefox'
+          Cpu: !Ref 'ContainerCpu'
+          Memory: !Ref 'ContainerMemory'
+          Image: 'selenium/node-firefox:3.9.1-actinium'
+          Environment:
+            - Name: 'HUB_PORT_4444_TCP_ADDR'
+              Value:
+                Fn::ImportValue:
+                  !Join [':', [!Ref 'StackName', 'ExternalHost']]
+            - Name: 'HUB_PORT_4444_TCP_PORT'
+              Value: '4444'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'selenium'
+          PortMappings:
+            - ContainerPort: 5555
 
   ServiceHub:
     Type: AWS::ECS::Service
@@ -85,17 +161,64 @@ Resources:
         Fn::If:
           - 'HasCustomRole'
           - !Ref 'Role'
-          - !Ref "AWS::NoValue"
+          - !Ref 'AWS::NoValue'
       LoadBalancers:
         - ContainerName: 'hub'
           ContainerPort: 4444
           TargetGroupArn: !Ref 'TargetGroup'
 
-  # A target group. This is used for keeping track of all the tasks, and
-  # what IP addresses / port numbers they have. You can query it yourself,
-  # to use the addresses yourself, but most often this target group is just
-  # connected to an application load balancer, or network load balancer, so
-  # it can automatically distribute traffic across all the targets.
+  ServiceNodeChrome:
+    Type: AWS::ECS::Service
+    DependsOn: ServiceHub
+    Properties:
+      ServiceName: 'node-chrome'
+      Cluster:
+        Fn::ImportValue:
+          !Join [':', [!Ref 'StackName', 'ClusterName']]
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: 2
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - Fn::ImportValue:
+                !Join [':', [!Ref 'StackName', 'FargateContainerSecurityGroup']]
+          Subnets:
+            - Fn::ImportValue:
+                !Join [':', [!Ref 'StackName', 'PrivateSubnetOne']]
+            - Fn::ImportValue:
+                !Join [':', [!Ref 'StackName', 'PrivateSubnetTwo']]
+      TaskDefinition: !Ref 'TaskDefinitionNodeChrome'
+
+  ServiceNodeFirefox:
+    Type: AWS::ECS::Service
+    DependsOn: ServiceHub
+    Properties:
+      ServiceName: 'node-firefox'
+      Cluster:
+        Fn::ImportValue:
+          !Join [':', [!Ref 'StackName', 'ClusterName']]
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: 2
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - Fn::ImportValue:
+                !Join [':', [!Ref 'StackName', 'FargateContainerSecurityGroup']]
+          Subnets:
+            - Fn::ImportValue:
+                !Join [':', [!Ref 'StackName', 'PrivateSubnetOne']]
+            - Fn::ImportValue:
+                !Join [':', [!Ref 'StackName', 'PrivateSubnetTwo']]
+      TaskDefinition: !Ref 'TaskDefinitionNodeFirefox'
+
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
