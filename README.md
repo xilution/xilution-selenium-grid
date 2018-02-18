@@ -53,4 +53,4 @@ If you find the contents of this repo useful, please share your experiences with
 
 ## Wish List
 
-See repo Issues.
+[See repo Issues.](https://github.com/xilution/xilution-selenium-grid/issues)
