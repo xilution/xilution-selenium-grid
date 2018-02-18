@@ -43,8 +43,6 @@
 **Warning!** Only run the grid while needed. When not in use, I highly recommend that you run the deprovision step. 
 Why pay for your new Selenium Grid when you don't need it. Isn't elasticity great!?!
 
-The Selenium Grid can be accessed at: http://selenium-grid.xilution.com
-
 ## Contributions
 
 Pull requests are welcome. If you see an opportunity to improve this repo, please share.
