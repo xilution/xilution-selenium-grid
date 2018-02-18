@@ -22,4 +22,4 @@ secrets-devops-decrypt:
 	aws kms decrypt --ciphertext-blob fileb://./aws/cloud-formation/secrets.encrypted.txt --output text --query Plaintext | base64 --decode > ./aws/cloud-formation/secrets.decrypted.json
 
 secrets-devops-encrypt:
-	aws kms encrypt --key-id 15540342-c7b8-4151-bece-72f7b5f4e7f5 --plaintext fileb://./aws/cloud-formation/secrets.decrypted.json --output text --query CiphertextBlob | base64 --decode > ./aws/cloud-formation/secrets.encrypted.txt
+	aws kms encrypt --key-id $(AWS_DEV_OPS_KEY_TOKEN) --plaintext fileb://./aws/cloud-formation/secrets.decrypted.json --output text --query CiphertextBlob | base64 --decode > ./aws/cloud-formation/secrets.encrypted.txt

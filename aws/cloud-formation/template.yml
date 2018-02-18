@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Parameters:
+  DomainName:
+    Type: String
   ContainerCpu:
     Type: Number
     Default: 256
@@ -212,11 +214,11 @@ Resources:
     Type: "AWS::Route53::RecordSet"
     DependsOn: PublicLoadBalancer
     Properties:
-      Name: selenium-grid.xilution.com.
+      Name: !Join ['.', ['selenium-grid', !Ref 'DomainName']]
       AliasTarget:
         DNSName: !GetAtt 'PublicLoadBalancer.DNSName'
         HostedZoneId: !GetAtt 'PublicLoadBalancer.CanonicalHostedZoneID'
-      HostedZoneName: xilution.com.
+      HostedZoneName: !Ref 'DomainName'
       Type: A
   DummyTargetGroupPublic:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
