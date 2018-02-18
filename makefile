@@ -1,34 +1,17 @@
-deprovision-network:
-	aws cloudformation delete-stack --stack-name selenium-grid-network
+deprovision:
+	aws cloudformation delete-stack --stack-name selenium-grid
 
-deprovision-service:
-	aws cloudformation delete-stack --stack-name selenium-grid-service
-
-provision-network: secrets-devops-decrypt
-	aws cloudformation create-stack --stack-name selenium-grid-network \
+provision: secrets-devops-decrypt
+	aws cloudformation create-stack --stack-name selenium-grid \
 		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/fargate-networking-stacks/public-private-vpc.yml \
+		--template-body file://./aws/cloud-formation/template.yml \
 		--parameters file://./aws/cloud-formation/secrets.decrypted.json
 	make secrets-devops-clean-up
 
-provision-service: secrets-devops-decrypt
-	aws cloudformation create-stack --stack-name selenium-grid-service \
+reprovision: secrets-devops-decrypt
+	aws cloudformation update-stack --stack-name selenium-grid \
 		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/service-stacks/private-subnet-public-loadbalancer.yml \
-		--parameters file://./aws/cloud-formation/secrets.decrypted.json
-	make secrets-devops-clean-up
-
-reprovision-network: secrets-devops-decrypt
-	aws cloudformation update-stack --stack-name selenium-grid-network \
-		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/fargate-networking-stacks/public-private-vpc.yml \
-		--parameters file://./aws/cloud-formation/secrets.decrypted.json
-	make secrets-devops-clean-up
-
-reprovision-service: secrets-devops-decrypt
-	aws cloudformation update-stack --stack-name selenium-grid-service \
-		--capabilities CAPABILITY_IAM \
-		--template-body file://./aws/cloud-formation/service-stacks/private-subnet-public-loadbalancer.yml \
+		--template-body file://./aws/cloud-formation/template.yml \
 		--parameters file://./aws/cloud-formation/secrets.decrypted.json
 	make secrets-devops-clean-up
 
