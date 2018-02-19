@@ -474,3 +474,10 @@ Resources:
           Values: [!Ref 'Path']
       ListenerArn: !Ref 'PublicLoadBalancerListener'
       Priority: !Ref 'Priority'
+
+Outputs:
+  ExternalUrl:
+    Description: The url of the external load balancer
+    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ExternalUrl' ] ]
