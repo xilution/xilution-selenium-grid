@@ -1,6 +1,12 @@
 deprovision:
 	aws cloudformation delete-stack --stack-name selenium-grid
 
+estimate-cost: secrets-devops-decrypt
+	aws cloudformation estimate-template-cost \
+		--template-body file://./aws/cloud-formation/template.yml \
+		--parameters file://./aws/cloud-formation/secrets.decrypted.json
+	make secrets-devops-clean-up
+
 provision: secrets-devops-decrypt
 	aws cloudformation create-stack --stack-name selenium-grid \
 		--capabilities CAPABILITY_IAM \
