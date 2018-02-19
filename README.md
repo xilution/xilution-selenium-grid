@@ -20,10 +20,10 @@
 1. [Set up an AWS Account](https://aws.amazon.com/).
 1. Install the [AWS CLI](https://aws.amazon.com/cli).
 1. Use [AWS IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html) to create an administrator identity. It's generally bad practice to use your AWS account's root user. 
-1. Use [AWS Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html) to create a Hosted Zone with a custom domain name.
+1. Use [AWS Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html) to create a Hosted Zone with a custom domain name. This step is optional.
 1. Use [AWS Key Management System](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html) to create a dev ops key for encrypting secrets.
 1. Add `export AWS_DEV_OPS_KEY_TOKEN=your-aws-dev-ops-kms-key-token` to your `.bash_profile`. Run `source ~/.bash_profile` to add the new environment variable to your current terminal session. This only needs to be done once.
-1. Create a file named `secrets.decrypted.json` in `./aws/cloud-formation/` with the following contents. Replace `your-domain.com.` with your custom domain name.
+1. Create a file named `secrets.decrypted.json` in `./aws/cloud-formation/` with the following contents. Replace `your-domain.com.` with your custom domain name. If you do not set up a custom domain name, remove the `RecordSet` resource from the CloudFormation template.
 	``` json
 	[
 	  {
@@ -32,7 +32,7 @@
 	  }
 	]
 	```
-1. Run `make secrets-devops-encrypt` to encrypt the parameters with your key. Make sure that your 
+1. Run `make secrets-devops-encrypt` to encrypt the parameters with your key.
 
 ## Operating your Selenium Grid
 
