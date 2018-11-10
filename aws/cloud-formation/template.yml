@@ -19,7 +19,7 @@ Parameters:
     Description: The number of firefox's instances to allocate.
   NumberOfChrome:
     Type: String
-    Default: '0'
+    Default: '2'
     Description: The number of chrome's instances to allocate.
 
 
@@ -426,8 +426,7 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
-      DesiredCount:
-        Ref: 'NumberOfHub'
+      DesiredCount: !Ref 'NumberOfHub'
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -456,7 +455,7 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
-      DesiredCount: 1
+      DesiredCount: !Ref 'NumberOfChrome'
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -515,7 +514,7 @@ Resources:
 
 Outputs:
   ExternalUrl:
-    Description: The url of the external load balancer
+    Description: The url of the Selenium console
     Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName', ':4444/grid/console']]
     Export:
       Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ExternalUrl' ] ]
