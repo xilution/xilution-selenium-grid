@@ -9,6 +9,20 @@ Parameters:
     Type: String
     Default: 'eipalloc-01c9d1963b3751183'
     Description: The allocationId of an already reserved ElasticIP
+  NumberOfHub:
+    Type: String
+    Default: '1'
+    Description: The number of Selenium Hub's instances to allocate.
+  NumberOfFirefox:
+    Type: String
+    Default: '0'
+    Description: The number of firefox's instances to allocate.
+  NumberOfChrome:
+    Type: String
+    Default: '0'
+    Description: The number of chrome's instances to allocate.
+
+
   # DomainName:
   #   Type: String
   ContainerCpu:
@@ -342,38 +356,38 @@ Resources:
             - '-c'
           Command:
             - "export GRID_HUB_HOST=`networkctl status eth0 | grep -oP \" Address: \\K([0-9]+\\.){3}[0-9]+\"`; /opt/bin/entry_point.sh;"
-  TaskDefinitionNodeChrome:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Cpu: !Ref 'ContainerCpu'
-      Memory: !Ref 'ContainerMemory'
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      ExecutionRoleArn: !GetAtt 'ECSTaskExecutionRole.Arn'
-      ContainerDefinitions:
-        - Name: 'node-chrome'
-          Cpu: !Ref 'ContainerCpu'
-          Memory: !Ref 'ContainerMemory'
-          Image: 'selenium/node-chrome:3.9.1-actinium'
-          Environment:
-            - Name: 'HUB_PORT_4444_TCP_ADDR'
-              Value: !GetAtt 'PublicLoadBalancer.DNSName'
-            - Name: 'HUB_PORT_4444_TCP_PORT'
-              Value: '4444'
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref LogGroup
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: 'selenium'
-          PortMappings:
-            - ContainerPort: 5555
-          EntryPoint:
-            - 'sh'
-            - '-c'
-          Command:
-            - "export REMOTE_HOST=http://`ip addr show eth0 | grep -oP \"inet \\K\\S([0-9]+\\.){3}[0-9]+\"`:$NODE_PORT ; printenv | grep REMOTE ; /opt/bin/entry_point.sh;"
+  # TaskDefinitionNodeChrome:
+  #   Type: AWS::ECS::TaskDefinition
+  #   Properties:
+  #     Cpu: !Ref 'ContainerCpu'
+  #     Memory: !Ref 'ContainerMemory'
+  #     NetworkMode: awsvpc
+  #     RequiresCompatibilities:
+  #       - FARGATE
+  #     ExecutionRoleArn: !GetAtt 'ECSTaskExecutionRole.Arn'
+  #     ContainerDefinitions:
+  #       - Name: 'node-chrome'
+  #         Cpu: !Ref 'ContainerCpu'
+  #         Memory: !Ref 'ContainerMemory'
+  #         Image: 'selenium/node-chrome:3.9.1-actinium'
+  #         Environment:
+  #           - Name: 'HUB_PORT_4444_TCP_ADDR'
+  #             Value: !GetAtt 'PublicLoadBalancer.DNSName'
+  #           - Name: 'HUB_PORT_4444_TCP_PORT'
+  #             Value: '4444'
+  #         LogConfiguration:
+  #           LogDriver: awslogs
+  #           Options:
+  #             awslogs-group: !Ref LogGroup
+  #             awslogs-region: !Ref 'AWS::Region'
+  #             awslogs-stream-prefix: 'selenium'
+  #         PortMappings:
+  #           - ContainerPort: 5555
+  #         EntryPoint:
+  #           - 'sh'
+  #           - '-c'
+  #         Command:
+  #           - "export REMOTE_HOST=http://`ip addr show eth0 | grep -oP \"inet \\K\\S([0-9]+\\.){3}[0-9]+\"`:$NODE_PORT ; printenv | grep REMOTE ; /opt/bin/entry_point.sh;"
 
   # TaskDefinitionNodeFirefox:
   #   Type: AWS::ECS::TaskDefinition
@@ -412,7 +426,8 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
-      DesiredCount: 1
+      DesiredCount:
+        Ref: 'NumberOfHub'
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -431,26 +446,26 @@ Resources:
         - ContainerName: 'hub'
           ContainerPort: 4444
           TargetGroupArn: !Ref 'TargetGroup'
-  ServiceNodeChrome:
-    Type: AWS::ECS::Service
-    DependsOn: ServiceHub
-    Properties:
-      ServiceName: 'node-chrome'
-      Cluster: !Ref 'ECSCluster'
-      LaunchType: FARGATE
-      DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 75
-      DesiredCount: 3
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          SecurityGroups:
-            - !Ref 'FargateContainerSecurityGroup'
-          Subnets:
-            - !Ref 'PrivateSubnetOne'
-            - !Ref 'PrivateSubnetTwo'
-      TaskDefinition: !Ref 'TaskDefinitionNodeChrome'
+  # ServiceNodeChrome:
+  #   Type: AWS::ECS::Service
+  #   DependsOn: ServiceHub
+  #   Properties:
+  #     ServiceName: 'node-chrome'
+  #     Cluster: !Ref 'ECSCluster'
+  #     LaunchType: FARGATE
+  #     DeploymentConfiguration:
+  #       MaximumPercent: 200
+  #       MinimumHealthyPercent: 75
+  #     DesiredCount: 3
+  #     NetworkConfiguration:
+  #       AwsvpcConfiguration:
+  #         AssignPublicIp: ENABLED
+  #         SecurityGroups:
+  #           - !Ref 'FargateContainerSecurityGroup'
+  #         Subnets:
+  #           - !Ref 'PrivateSubnetOne'
+  #           - !Ref 'PrivateSubnetTwo'
+  #     TaskDefinition: !Ref 'TaskDefinitionNodeChrome'
   # ServiceNodeFirefox:
   #   Type: AWS::ECS::Service
   #   DependsOn: ServiceHub
@@ -501,6 +516,6 @@ Resources:
 Outputs:
   ExternalUrl:
     Description: The url of the external load balancer
-    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName', ':4444/grid/console']]
     Export:
       Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ExternalUrl' ] ]
