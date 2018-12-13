@@ -1,2 +1,6 @@
 .idea
 aws/cloud-formation/secrets.decrypted.json
+.log
+secrets.encrypted.txt
+.DS_Store
+backup/

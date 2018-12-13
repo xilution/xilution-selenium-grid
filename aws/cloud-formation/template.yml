@@ -1,8 +1,30 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Parameters:
-  DomainName:
+  ElasticIpOne:
     Type: String
+    Default: 'eipalloc-0236872aadcb9b4b8'
+    Description: The allocationId of an already reserved ElasticIP
+  ElasticIpTwo:
+    Type: String
+    Default: 'eipalloc-01c9d1963b3751183'
+    Description: The allocationId of an already reserved ElasticIP
+  NumberOfHub:
+    Type: String
+    Default: '1'
+    Description: The number of Selenium Hub's instances to allocate.
+  NumberOfFirefox:
+    Type: String
+    Default: '0'
+    Description: The number of firefox's instances to allocate.
+  NumberOfChrome:
+    Type: String
+    Default: '2'
+    Description: The number of chrome's instances to allocate.
+
+
+  # DomainName:
+  #   Type: String
   ContainerCpu:
     Type: Number
     Default: 256
@@ -118,25 +140,29 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetTwo
       RouteTableId: !Ref PublicRouteTable
-  NatGatewayOneAttachment:
-    Type: AWS::EC2::EIP
-    DependsOn: GatewayAttachement
-    Properties:
-        Domain: vpc
-  NatGatewayTwoAttachment:
-    Type: AWS::EC2::EIP
-    DependsOn: GatewayAttachement
-    Properties:
-        Domain: vpc
+  # NatGatewayOneAttachment:
+  #   Type: AWS::EC2::EIP
+  #   DependsOn: GatewayAttachement
+  #   Properties:
+  #       Domain: vpc
+  # NatGatewayTwoAttachment:
+  #   Type: AWS::EC2::EIP
+  #   DependsOn: GatewayAttachement
+  #   Properties:
+  #       Domain: vpc
   NatGatewayOne:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt NatGatewayOneAttachment.AllocationId
+      # AllocationId: !GetAtt NatGatewayOneAttachment.AllocationId
+      AllocationId:
+        Ref: 'ElasticIpOne'
       SubnetId: !Ref PublicSubnetOne
   NatGatewayTwo:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt NatGatewayTwoAttachment.AllocationId
+      AllocationId:
+        Ref: 'ElasticIpTwo'
+      # AllocationId: !GetAtt NatGatewayTwoAttachment.AllocationId
       SubnetId: !Ref PublicSubnetTwo
   PrivateRouteTableOne:
     Type: AWS::EC2::RouteTable
@@ -213,16 +239,16 @@ Resources:
   # This is an optional resource. If you don't want to use a custom domain, just
   # remove the RecordSet resource an use the URL of the public load balancer which can
   # be found in CloudFormation.
-  RecordSet:
-    Type: "AWS::Route53::RecordSet"
-    DependsOn: PublicLoadBalancer
-    Properties:
-      Name: !Join ['.', ['selenium-grid', !Ref 'DomainName']]
-      AliasTarget:
-        DNSName: !GetAtt 'PublicLoadBalancer.DNSName'
-        HostedZoneId: !GetAtt 'PublicLoadBalancer.CanonicalHostedZoneID'
-      HostedZoneName: !Ref 'DomainName'
-      Type: A
+  # RecordSet:
+  #   Type: "AWS::Route53::RecordSet"
+  #   DependsOn: PublicLoadBalancer
+  #   Properties:
+  #     Name: !Join ['.', ['selenium-grid', !Ref 'DomainName']]
+  #     AliasTarget:
+  #       DNSName: !GetAtt 'PublicLoadBalancer.DNSName'
+  #       HostedZoneId: !GetAtt 'PublicLoadBalancer.CanonicalHostedZoneID'
+  #     HostedZoneName: !Ref 'DomainName'
+  #     Type: A
   DummyTargetGroupPublic:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -325,6 +351,11 @@ Resources:
               awslogs-stream-prefix: 'selenium'
           PortMappings:
             - ContainerPort: 4444
+          EntryPoint:
+            - 'sh'
+            - '-c'
+          Command:
+            - "export GRID_HUB_HOST=`networkctl status eth0 | grep -oP \" Address: \\K([0-9]+\\.){3}[0-9]+\"`; /opt/bin/entry_point.sh;"
   TaskDefinitionNodeChrome:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -352,33 +383,39 @@ Resources:
               awslogs-stream-prefix: 'selenium'
           PortMappings:
             - ContainerPort: 5555
-  TaskDefinitionNodeFirefox:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Cpu: !Ref 'ContainerCpu'
-      Memory: !Ref 'ContainerMemory'
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      ExecutionRoleArn: !GetAtt 'ECSTaskExecutionRole.Arn'
-      ContainerDefinitions:
-        - Name: 'node-firefox'
-          Cpu: !Ref 'ContainerCpu'
-          Memory: !Ref 'ContainerMemory'
-          Image: 'selenium/node-firefox:3.9.1-actinium'
-          Environment:
-            - Name: 'HUB_PORT_4444_TCP_ADDR'
-              Value: !GetAtt 'PublicLoadBalancer.DNSName'
-            - Name: 'HUB_PORT_4444_TCP_PORT'
-              Value: '4444'
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref LogGroup
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: 'selenium'
-          PortMappings:
-            - ContainerPort: 5555
+          EntryPoint:
+            - 'sh'
+            - '-c'
+          Command:
+            - "export REMOTE_HOST=http://`ip addr show eth0 | grep -oP \"inet \\K\\S([0-9]+\\.){3}[0-9]+\"`:$NODE_PORT ; printenv | grep REMOTE ; /opt/bin/entry_point.sh;"
+
+  # TaskDefinitionNodeFirefox:
+  #   Type: AWS::ECS::TaskDefinition
+  #   Properties:
+  #     Cpu: !Ref 'ContainerCpu'
+  #     Memory: !Ref 'ContainerMemory'
+  #     NetworkMode: awsvpc
+  #     RequiresCompatibilities:
+  #       - FARGATE
+  #     ExecutionRoleArn: !GetAtt 'ECSTaskExecutionRole.Arn'
+  #     ContainerDefinitions:
+  #       - Name: 'node-firefox'
+  #         Cpu: !Ref 'ContainerCpu'
+  #         Memory: !Ref 'ContainerMemory'
+  #         Image: 'selenium/node-firefox:3.9.1-actinium'
+  #         Environment:
+  #           - Name: 'HUB_PORT_4444_TCP_ADDR'
+  #             Value: !GetAtt 'PublicLoadBalancer.DNSName'
+  #           - Name: 'HUB_PORT_4444_TCP_PORT'
+  #             Value: '4444'
+  #         LogConfiguration:
+  #           LogDriver: awslogs
+  #           Options:
+  #             awslogs-group: !Ref LogGroup
+  #             awslogs-region: !Ref 'AWS::Region'
+  #             awslogs-stream-prefix: 'selenium'
+  #         PortMappings:
+  #           - ContainerPort: 5555
   ServiceHub:
     Type: AWS::ECS::Service
     DependsOn: LoadBalancerRule
@@ -389,7 +426,7 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
-      DesiredCount: 1
+      DesiredCount: !Ref 'NumberOfHub'
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -418,7 +455,7 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
-      DesiredCount: 2
+      DesiredCount: !Ref 'NumberOfChrome'
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -428,26 +465,26 @@ Resources:
             - !Ref 'PrivateSubnetOne'
             - !Ref 'PrivateSubnetTwo'
       TaskDefinition: !Ref 'TaskDefinitionNodeChrome'
-  ServiceNodeFirefox:
-    Type: AWS::ECS::Service
-    DependsOn: ServiceHub
-    Properties:
-      ServiceName: 'node-firefox'
-      Cluster: !Ref 'ECSCluster'
-      LaunchType: FARGATE
-      DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 75
-      DesiredCount: 2
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          SecurityGroups:
-            - !Ref 'FargateContainerSecurityGroup'
-          Subnets:
-            - !Ref 'PrivateSubnetOne'
-            - !Ref 'PrivateSubnetTwo'
-      TaskDefinition: !Ref 'TaskDefinitionNodeFirefox'
+  # ServiceNodeFirefox:
+  #   Type: AWS::ECS::Service
+  #   DependsOn: ServiceHub
+  #   Properties:
+  #     ServiceName: 'node-firefox'
+  #     Cluster: !Ref 'ECSCluster'
+  #     LaunchType: FARGATE
+  #     DeploymentConfiguration:
+  #       MaximumPercent: 200
+  #       MinimumHealthyPercent: 75
+  #     DesiredCount: 2
+  #     NetworkConfiguration:
+  #       AwsvpcConfiguration:
+  #         AssignPublicIp: ENABLED
+  #         SecurityGroups:
+  #           - !Ref 'FargateContainerSecurityGroup'
+  #         Subnets:
+  #           - !Ref 'PrivateSubnetOne'
+  #           - !Ref 'PrivateSubnetTwo'
+  #     TaskDefinition: !Ref 'TaskDefinitionNodeFirefox'
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -477,7 +514,7 @@ Resources:
 
 Outputs:
   ExternalUrl:
-    Description: The url of the external load balancer
-    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+    Description: The url of the Selenium console
+    Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName', ':4444/grid/console']]
     Export:
       Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ExternalUrl' ] ]
